@@ -1,25 +1,15 @@
 {
   "name": "Crypto Advisor Pro",
-  "short_name": "Crypto Advisor",
-  "description": "Analisi tecnica crypto, DCA e registro operazioni",
+  "short_name": "Crypto Pro",
+  "description": "Analisi tecnica avanzata, DCA Bot automatico e registro operazioni crypto",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0d0f14",
+  "background_color": "#0a0c10",
   "theme_color": "#7c6af7",
   "orientation": "portrait-primary",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "categories": ["finance"],
   "lang": "it"
