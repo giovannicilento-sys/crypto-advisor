@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Crypto Advisor Pro</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crypto Advisor">
+<meta name="theme-color" content="#7c6af7">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="apple-touch-startup-image" href="./icon-512.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e2a;
+    --bg4: #20253400;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --text2: #8b90a0;
+    --text3: #555a6a;
+    --green: #00d68f;
+    --green2: rgba(0,214,143,0.12);
+    --red: #ff4d4d;
+    --red2: rgba(255,77,77,0.12);
+    --yellow: #f5a623;
+    --yellow2: rgba(245,166,35,0.12);
+    --blue: #4d9fff;
+    --blue2: rgba(77,159,255,0.1);
+    --accent: #7c6af7;
+    --accent2: rgba(124,106,247,0.15);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  
+  /* LAYOUT */
+  .app { max-width: 1200px; margin: 0 auto; padding: 20px 16px 60px; padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: max(60px, env(safe-area-inset-bottom)); }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .header-left h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-left p { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .last-update { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; overflow-x: auto; }
+  .tab { padding: 8px 16px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text2); background: transparent; border: none; border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap; }
+  .tab:hover { color: var(--text); background: var(--bg3); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  
+  /* COIN SELECTOR */
+  .coin-bar { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-bottom: 16px; }
+  @media(max-width:600px){ .coin-bar { grid-template-columns: repeat(3,1fr); } }
+  .coin-btn { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; transition: all .15s; text-align: left; }
+  .coin-btn:hover { border-color: var(--border2); background: var(--bg3); }
+  .coin-btn.active { border-color: var(--accent); background: var(--accent2); }
+  .coin-sym { font-size: 13px; font-weight: 600; color: var(--text); }
+  .coin-price { font-family: var(--mono); font-size: 12px; color: var(--text); margin-top: 2px; }
+  .coin-chg { font-size: 11px; margin-top: 1px; }
+  
+  /* CARDS */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .card-title { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  @media(max-width:700px){ .grid2,.grid3 { grid-template-columns: 1fr; } }
+  
+  /* SIGNAL */
+  .signal-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 15px; font-weight: 700; letter-spacing: .05em; }
+  .sig-buy { background: var(--green2); color: var(--green); border: 1px solid rgba(0,214,143,0.3); }
+  .sig-sell { background: var(--red2); color: var(--red); border: 1px solid rgba(255,77,77,0.3); }
+  .sig-hold { background: var(--yellow2); color: var(--yellow); border: 1px solid rgba(245,166,35,0.3); }
+  
+  /* STRENGTH BAR */
+  .bar-track { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+  
+  /* FACTORS */
+  .factor { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text2); }
+  .factor:last-child { border: none; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  
+  /* INDICATORS */
+  .ind-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .ind-row:last-child { border: none; }
+  .ind-key { color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  
+  /* RSI GAUGE */
+  .rsi-bar { height: 8px; border-radius: 4px; background: linear-gradient(to right, #00d68f 0%, #00d68f 30%, #f5a623 30%, #f5a623 70%, #ff4d4d 70%, #ff4d4d 100%); position: relative; margin: 6px 0 3px; }
+  .rsi-pin { position: absolute; top: -4px; width: 4px; height: 16px; background: white; border-radius: 2px; transform: translateX(-50%); transition: left .5s ease; box-shadow: 0 0 6px rgba(255,255,255,.5); }
+  
+  /* DCA */
+  .dca-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .dca-row:last-child { border: none; }
+  
+  /* INPUT */
+  .inp { width: 100%; padding: 8px 10px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: inherit; transition: border .15s; }
+  .inp:focus { outline: none; border-color: var(--accent); }
+  .inp-group { margin-bottom: 10px; }
+  .inp-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  
+  /* SELECT */
+  select.inp { appearance: none; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  
+  /* RANGE */
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 4px; cursor: pointer; }
+  
+  /* BUTTONS */
+  .btn { padding: 9px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--bg3); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; font-family: inherit; }
+  .btn:hover { background: var(--bg4); border-color: var(--border2); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn-primary:hover { background: #6a5ae0; border-color: #6a5ae0; }
+  .btn-green { background: var(--green2); border-color: rgba(0,214,143,.3); color: var(--green); }
+  .btn-green:hover { background: rgba(0,214,143,.2); }
+  .btn-red { background: var(--red2); border-color: rgba(255,77,77,.3); color: var(--red); }
+  .btn-full { width: 100%; }
+  
+  /* AI OUTPUT */
+  .ai-out { font-size: 13px; color: var(--text2); line-height: 1.7; padding: 14px; background: var(--bg3); border-radius: var(--radius-sm); margin-top: 10px; white-space: pre-wrap; border-left: 3px solid var(--accent); }
+  
+  /* REGISTER */
+  .ops-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ops-table th { text-align: left; padding: 6px 8px; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border); }
+  .ops-table td { padding: 8px 8px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: middle; }
+  .ops-table tr:last-child td { border: none; }
+  .ops-table tr:hover td { background: var(--bg3); }
+  .ops-table td.mono { font-family: var(--mono); color: var(--text); }
+  
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+  @media(max-width:600px){ .stats-row { grid-template-columns: repeat(2,1fr); } }
+  .stat-card { background: var(--bg3); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+  .stat-val { font-size: 18px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 20px; width: 100%; max-width: 420px; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .modal-footer { display: flex; gap: 8px; margin-top: 16px; }
+  
+  /* BADGES */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .badge-buy { background: var(--green2); color: var(--green); }
+  .badge-sell { background: var(--red2); color: var(--red); }
+  
+  /* LOADING / ERROR */
+  .loading { color: var(--text3); font-size: 12px; padding: 8px 0; }
+  .err { color: var(--red); font-size: 12px; padding: 8px 0; }
+  
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  
+  /* CHART CONTAINER */
+  .chart-wrap { position: relative; width: 100%; height: 200px; }
+  
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 30px 0; color: var(--text3); font-size: 13px; }
+  .empty-state span { display: block; font-size: 28px; margin-bottom: 8px; }
+  
+  /* TOOLTIP-LIKE */
+  .hint { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
+  
+  /* PNL colors */
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .neu { color: var(--text2); }
+  
+  .sep { border-top: 1px solid var(--border); margin: 14px 0; }
+  
+  /* COIN SUMMARY CARDS */
+  .coin-summary { background: var(--bg3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; }
+  .coin-summary:last-child { margin-bottom: 0; }
+  
+  .version { font-size: 10px; color: var(--text3); padding: 4px 8px; background: var(--bg3); border-radius: 20px; border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div id="ios-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1e2a;border-top:1px solid rgba(124,106,247,.4);padding:14px 16px;z-index:200;align-items:center;gap:12px;padding-bottom:max(14px,env(safe-area-inset-bottom))">
+  <div style="font-size:28px;line-height:1">⬡</div>
+  <div style="flex:1">
+    <p style="font-size:13px;font-weight:600;color:#e8eaf0;margin-bottom:2px">Installa come app</p>
+    <p style="font-size:11px;color:#8b90a0;line-height:1.4">Tocca <strong style="color:#e8eaf0">□↑</strong> in basso, poi <strong style="color:#e8eaf0">"Aggiungi a schermata Home"</strong> per usarla come vera app con notifiche.</p>
+  </div>
+  <button onclick="dismissInstallBanner()" style="background:none;border:none;color:#555a6a;font-size:20px;cursor:pointer;padding:4px">✕</button>
+</div>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>⬡ Crypto Advisor Pro</h1>
+      <p>Analisi tecnica · Gestione rischio · DCA · Registro operazioni</p>
+    </div>
+    <div class="header-right">
+      <span class="last-update" id="last-update">—</span>
+      <span class="version">v3.0</span>
+      <button class="btn" id="notif-btn" onclick="toggleNotifications()" title="Attiva/disattiva notifiche">🔔 Notifiche</button>
+      <button class="btn" onclick="loadData()" id="refresh-btn">↻ Aggiorna</button>
+    </div>
+  </div>
+
+  <!-- MAIN TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="switchTab('registro')">Registro Operazioni</button>
+    <button class="tab" onclick="switchTab('portafoglio')">Portafoglio</button>
+    <button class="tab" onclick="switchTab('impostazioni')">Impostazioni</button>
+  </div>
+
+  <!-- ======== TAB: DASHBOARD ======== -->
+  <div id="tab-dashboard">
+    <!-- COIN BAR -->
+    <div class="coin-bar" id="coin-bar" style="margin-top:16px">
+      <div class="loading">Caricamento prezzi...</div>
+    </div>
+
+    <!-- SIGNAL + CHART -->
+    <div class="grid2">
+      <div class="card" id="signal-panel"><div class="loading">Calcolo segnale...</div></div>
+      <div class="card">
+        <p class="card-title" id="chart-title">Prezzo — 30 giorni</p>
+        <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- INDICATORS + DCA -->
+    <div class="grid2">
+      <div class="card" id="ind-panel"><div class="loading">Calcolo indicatori...</div></div>
+      <div class="card">
+        <p class="card-title">Calcolatore DCA</p>
+        <div class="inp-group">
+          <div class="inp-label">Capitale disponibile (€)</div>
+          <input type="number" class="inp" id="capital" value="1000" min="100" step="50" oninput="updateDCA()">
+        </div>
+        <div class="inp-group">
+          <div class="inp-label">Rischio max per operazione: <span id="risk-val" style="color:var(--text);font-weight:600">3%</span></div>
+          <input type="range" id="risk-pct" min="1" max="10" value="3" step="1" oninput="document.getElementById('risk-val').textContent=this.value+'%';updateDCA()">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:2px"><span>Conservativo 1%</span><span>Aggressivo 10%</span></div>
+        </div>
+        <div class="sep"></div>
+        <div id="dca-out"><div class="loading">In attesa dati...</div></div>
+        <div class="sep"></div>
+        <button class="btn btn-green btn-full" id="log-btn" onclick="openLogModal()" style="display:none">+ Registra operazione</button>
+      </div>
+    </div>
+
+    <!-- AI ANALYSIS -->
+    <div class="card">
+      <p class="card-title">Analisi approfondita — Claude AI</p>
+      <button class="btn btn-primary btn-full" id="ai-btn" onclick="runAI()">Chiedi analisi a Claude</button>
+      <div id="ai-out" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ======== TAB: REGISTRO ======== -->
+  <div id="tab-registro" style="display:none;margin-top:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <p style="font-size:13px;color:var(--text2)">Storico di tutte le tue operazioni su Binance</p>
+      <button class="btn btn-green" onclick="openLogModal()">+ Nuova operazione</button>
+    </div>
+
+    <!-- FILTRI -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select class="inp" id="filter-coin" style="width:auto" onchange="renderRegister()">
+        <option value="all">Tutte le coin</option>
+        <option value="BTC">Bitcoin (BTC)</option>
+        <option value="ETH">Ethereum (ETH)</option>
+        <option value="SOL">Solana (SOL)</option>
+        <option value="BNB">BNB</option>
+        <option value="ADA">Cardano (ADA)</option>
+      </select>
+      <select class="inp" id="filter-type" style="width:auto" onchange="renderRegister()">
+        <option value="all">Tutti i tipi</option>
+        <option value="buy">Solo acquisti</option>
+        <option value="sell">Solo vendite</option>
+      </select>
+      <button class="btn btn-red" onclick="confirmClearAll()" style="margin-left:auto">🗑 Cancella tutto</button>
+    </div>
+
+    <div class="card" id="register-table-wrap">
+      <div class="empty-state"><span>📋</span>Nessuna operazione registrata.<br>Aggiungi il tuo primo acquisto!</div>
+    </div>
+  </div>
+
+  <!-- ======== TAB: PORTAFOGLIO ======== -->
+  <div id="tab-portafoglio" style="display:none;margin-top:16px">
+    <div class="stats-row" id="portfolio-stats">
+      <div class="stat-card"><div class="stat-label">Totale investito</div><div class="stat-val" id="ps-invested">€0</div></div>
+      <div class="stat-card"><div class="stat-label">Valore attuale</div><div class="stat-val" id="ps-value">€0</div></div>
+      <div class="stat-card"><div class="stat-label">P&L totale</div><div class="stat-val" id="ps-pnl">€0</div></div>
+      <div class="stat-card"><div class="stat-label">P&L %</div><div class="stat-val" id="ps-pnl-pct">0%</div></div>
+    </div>
+    <div id="portfolio-coins"></div>
+  </div>
+
+  <!-- ======== TAB: IMPOSTAZIONI ======== -->
+  <div id="tab-impostazioni" style="display:none;margin-top:16px">
+    <div class="grid2">
+      <div class="card">
+        <p class="card-title">API Key Anthropic (Claude AI)</p>
+        <div class="inp-group">
+          <div class="inp-label">Inserisci la tua API Key per l'analisi AI</div>
+          <input type="password" class="inp" id="api-key-inp" placeholder="sk-ant-..." oninput="saveApiKey()">
+        </div>
+        <p class="hint">La chiave viene salvata solo sul tuo dispositivo (localStorage). Non viene mai inviata a server esterni.</p>
+        <p class="hint" style="margin-top:6px">Ottieni la chiave su: <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a></p>
+        <div id="api-status" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <p class="card-title">Dati & Backup</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-full" onclick="exportData()">⬇ Esporta dati (JSON)</button>
+          <label class="btn btn-full" style="text-align:center;cursor:pointer">
+            ⬆ Importa dati (JSON)
+            <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+          </label>
+          <button class="btn btn-red btn-full" onclick="confirmClearAll()">🗑 Cancella tutte le operazioni</button>
+        </div>
+        <div class="sep"></div>
+        <p class="hint">Esporta regolarmente i tuoi dati come backup. Il file JSON contiene tutte le operazioni registrate.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <p class="card-title">🔔 Notifiche automatiche</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <p style="font-size:13px;color:var(--text)">Avvisi push nel browser</p>
+          <p class="hint">Il software controlla i segnali ogni 15 minuti e ti avvisa se cambia qualcosa di importante.</p>
+        </div>
+        <button class="btn" id="notif-toggle-btn" onclick="toggleNotifications()" style="min-width:100px">Caricamento...</button>
+      </div>
+      <div id="notif-status-box" style="display:none;background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--text2);line-height:1.6"></div>
+      <div class="sep"></div>
+      <p class="card-title" style="margin-bottom:8px">Quando ti avvisa:</p>
+      <div style="font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--green);font-size:16px">●</span> Segnale cambia in <strong style="color:var(--green)">COMPRA</strong> per qualsiasi coin</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--red);font-size:16px">●</span> Segnale cambia in <strong style="color:var(--red)">VENDI</strong></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--yellow);font-size:16px">●</span> RSI scende sotto <strong style="color:var(--yellow)">30</strong> (ipervenduto — ottimo per DCA)</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--yellow);font-size:16px">●</span> RSI sale sopra <strong style="color:var(--yellow)">70</strong> (ipercomprato — attenzione)</div>
+      </div>
+      <p class="hint" style="margin-top:10px">⚠ Il browser deve rimanere aperto (anche in background o con lo schermo spento sul PC). Le notifiche non arrivano se chiudi il file.</p>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <p class="card-title">Come usare questo software</p>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">
+        <p style="margin-bottom:6px"><strong style="color:var(--text)">1. Dashboard</strong> — Vedi prezzi live, segnali tecnici (RSI, MACD, EMA, Bollinger) e il piano DCA ottimale per ogni coin.</p>
+        <p style="margin-bottom:6px"><strong style="color:var(--text)">2. Analisi AI</strong> — Inserisci la tua API key e premi il pulsante per ricevere un'analisi dettagliata da Claude con livelli di supporto/resistenza e consigli specifici.</p>
+        <p style="margin-bottom:6px"><strong style="color:var(--text)">3. Registro operazioni</strong> — Dopo ogni acquisto o vendita su Binance, registrala qui. Il software calcola automaticamente il tuo prezzo medio di carico e il P&L.</p>
+        <p style="margin-bottom:6px"><strong style="color:var(--text)">4. Portafoglio</strong> — Panoramica completa del tuo investimento: valore attuale, guadagni/perdite per ogni coin.</p>
+        <p style="color:var(--yellow)">⚠ Questo software è uno strumento di analisi tecnica. Non costituisce consulenza finanziaria. Investi solo quello che puoi permetterti di perdere.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ======== MODAL: NUOVA OPERAZIONE ======== -->
+<div class="modal-overlay" id="log-modal">
+  <div class="modal">
+    <h3>+ Registra operazione</h3>
+    <div class="inp-group">
+      <div class="inp-label">Tipo operazione</div>
+      <select class="inp" id="m-type">
+        <option value="buy">Acquisto (BUY)</option>
+        <option value="sell">Vendita (SELL)</option>
+      </select>
+    </div>
+    <div class="grid2" style="margin-bottom:0">
+      <div class="inp-group">
+        <div class="inp-label">Criptovaluta</div>
+        <select class="inp" id="m-coin">
+          <option value="BTC">Bitcoin (BTC)</option>
+          <option value="ETH">Ethereum (ETH)</option>
+          <option value="SOL">Solana (SOL)</option>
+          <option value="BNB">BNB (BNB)</option>
+          <option value="ADA">Cardano (ADA)</option>
+        </select>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">Data operazione</div>
+        <input type="date" class="inp" id="m-date">
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:0">
+      <div class="inp-group">
+        <div class="inp-label">Importo investito (€)</div>
+        <input type="number" class="inp" id="m-eur" placeholder="es. 50" min="0" step="0.01" oninput="calcModalQty()">
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">Prezzo di acquisto (€)</div>
+        <input type="number" class="inp" id="m-price" placeholder="es. 85000" min="0" step="0.000001" oninput="calcModalQty()">
+      </div>
+    </div>
+    <div class="inp-group">
+      <div class="inp-label">Quantità coin <span id="m-qty-calc" style="color:var(--accent);font-weight:600"></span></div>
+      <input type="number" class="inp" id="m-qty" placeholder="calcolato automaticamente" min="0" step="0.000001">
+    </div>
+    <div class="inp-group">
+      <div class="inp-label">Note (opzionale)</div>
+      <input type="text" class="inp" id="m-notes" placeholder="es. DCA #1, segnale RSI basso...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="flex:1" onclick="saveOperation()">Salva operazione</button>
+      <button class="btn" onclick="closeLogModal()">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== STATO GLOBALE =====================
+const COINS = [
+  {id:'bitcoin', sym:'BTC', name:'Bitcoin'},
+  {id:'ethereum', sym:'ETH', name:'Ethereum'},
+  {id:'solana', sym:'SOL', name:'Solana'},
+  {id:'binancecoin', sym:'BNB', name:'BNB'},
+  {id:'cardano', sym:'ADA', name:'Cardano'},
+];
+let ST = { prices:{}, histories:{}, selected:'bitcoin', indicators:{}, chart:null };
+
+// ===================== STORAGE =====================
+function getOps() { try { return JSON.parse(localStorage.getItem('cap_ops')||'[]'); } catch(e){return[];} }
+function saveOps(ops) { localStorage.setItem('cap_ops', JSON.stringify(ops)); }
+function getApiKey() { return localStorage.getItem('cap_apikey')||''; }
+function saveApiKey() {
+  const v = document.getElementById('api-key-inp').value.trim();
+  localStorage.setItem('cap_apikey', v);
+  const el = document.getElementById('api-status');
+  if(v.startsWith('sk-ant-')) { el.innerHTML = '<span style="color:var(--green);font-size:11px">✓ API key salvata</span>'; }
+  else if(v) { el.innerHTML = '<span style="color:var(--yellow);font-size:11px">⚠ Formato non riconosciuto</span>'; }
+  else { el.innerHTML = ''; }
+}
+
+// ===================== INIT =====================
+window.onload = function() {
+  document.getElementById('api-key-inp').value = getApiKey();
+  saveApiKey();
+  setTodayDate();
+  loadData();
+  initNotifications();
+  registerSW();
+  checkIOSInstall();
+};
+
+function registerSW() {
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
+  }
+}
+
+function checkIOSInstall() {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone;
+  const dismissed = localStorage.getItem('cap_install_dismissed');
+  if(isIOS && !isStandalone && !dismissed) {
+    const banner = document.getElementById('ios-install-banner');
+    if(banner) banner.style.display = 'flex';
+  }
+}
+
+function dismissInstallBanner() {
+  const banner = document.getElementById('ios-install-banner');
+  if(banner) banner.style.display = 'none';
+  localStorage.setItem('cap_install_dismissed','1');
+}
+
+function setTodayDate() {
+  const d = new Date();
+  document.getElementById('m-date').value = d.toISOString().split('T')[0];
+}
+
+// ===================== TAB SWITCHING =====================
+function switchTab(tab) {
+  ['dashboard','registro','portafoglio','impostazioni'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
+    document.querySelectorAll('.tab')[['dashboard','registro','portafoglio','impostazioni'].indexOf(t)].classList.toggle('active', t===tab);
+  });
+  if(tab==='registro') renderRegister();
+  if(tab==='portafoglio') renderPortfolio();
+}
+
+// ===================== DATA LOADING =====================
+async function loadData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const ids = COINS.map(c=>c.id).join(',');
+    const pr = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=eur,usd&include_24hr_change=true`).then(r=>r.json());
+    ST.prices = pr;
+    renderCoinBar();
+    await loadCoin(ST.selected);
+  } catch(e) {
+    document.getElementById('coin-bar').innerHTML = '<div class="err">Errore caricamento. Controlla connessione e riprova.</div>';
+  }
+  btn.disabled = false; btn.textContent = '↻ Aggiorna';
+  document.getElementById('last-update').textContent = 'Aggiornato ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadCoin(id) {
+  ST.selected = id;
+  renderCoinBar();
+  document.getElementById('signal-panel').innerHTML = '<div class="loading">Calcolo segnale...</div>';
+  document.getElementById('ind-panel').innerHTML = '<div class="loading">Calcolo indicatori...</div>';
+  document.getElementById('dca-out').innerHTML = '<div class="loading">Elaborazione...</div>';
+  document.getElementById('log-btn').style.display = 'none';
+  try {
+    if(!ST.histories[id]) {
+      const h = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=eur&days=30&interval=daily`).then(r=>r.json());
+      ST.histories[id] = {
+        prices: h.prices.map(p=>p[1]),
+        labels: h.prices.map(p=>new Date(p[0]).toLocaleDateString('it-IT',{month:'short',day:'numeric'}))
+      };
+    }
+    const hist = ST.histories[id];
+    const cl = hist.prices;
+    const price = ST.prices[id]?.eur || cl[cl.length-1];
+    const rsi = calcRSI(cl);
+    const e9 = calcEMA(cl,9), e21 = calcEMA(cl,21), e50 = calcEMA(cl,50);
+    const macd = calcEMA(cl,12) - calcEMA(cl,26);
+    const bb = calcBB(cl);
+    const sig = calcSignal(rsi, macd, price, bb, e9, e21, e50);
+    ST.indicators[id] = {rsi, e9, e21, e50, macd, bb, sig, price};
+    renderSignal(id, sig, rsi);
+    renderIndicators(id, rsi, e9, e21, e50, macd, bb, price);
+    renderChart(id, hist);
+    updateDCA();
+    document.getElementById('chart-title').textContent = COINS.find(c=>c.id===id).name + ' — Prezzo ultimi 30 giorni (€)';
+    // precompile modal
+    const coin = COINS.find(c=>c.id===id);
+    document.getElementById('m-coin').value = coin.sym;
+    if(price) document.getElementById('m-price').value = price.toFixed(2);
+  } catch(e) {
+    document.getElementById('signal-panel').innerHTML = '<div class="err">Errore analisi. Riprova.</div>';
+  }
+}
+
+// ===================== TECHNICAL ANALYSIS =====================
+function calcRSI(cl, p=14) {
+  if(cl.length < p+1) return 50;
+  const d = cl.slice(1).map((c,i)=>c-cl[i]).slice(-p);
+  const g = d.filter(x=>x>0).reduce((a,b)=>a+b,0)/p;
+  const l = d.filter(x=>x<0).reduce((a,b)=>a+Math.abs(b),0)/p;
+  if(l===0) return 100;
+  return 100-(100/(1+g/l));
+}
+function calcEMA(cl, p) {
+  const k = 2/(p+1);
+  return cl.reduce((e,c,i)=>i===0?c:c*k+e*(1-k));
+}
+function calcBB(cl, p=20) {
+  const s = cl.slice(-p);
+  const m = s.reduce((a,b)=>a+b,0)/p;
+  const std = Math.sqrt(s.reduce((a,b)=>a+(b-m)**2,0)/p);
+  return {upper:m+2*std, middle:m, lower:m-2*std};
+}
+function calcSignal(rsi, macd, price, bb, e9, e21, e50) {
+  let sc = 0; const fac = [];
+  if(rsi < 30)      { sc+=3; fac.push({t:'RSI ipervenduto — forte segnale acquisto', s:'buy'}); }
+  else if(rsi < 40) { sc+=1.5; fac.push({t:'RSI in zona bassa — accumulazione possibile', s:'buy'}); }
+  else if(rsi > 70) { sc-=3; fac.push({t:'RSI ipercomprato — possibile correzione imminente', s:'sell'}); }
+  else if(rsi > 60) { sc-=1.5; fac.push({t:'RSI in zona alta — ridurre esposizione', s:'sell'}); }
+  else              { fac.push({t:'RSI neutro (40–60) — mercato indeciso', s:'neu'}); }
+  if(macd > 0)  { sc+=1; fac.push({t:'MACD positivo — momentum rialzista confermato', s:'buy'}); }
+  else          { sc-=1; fac.push({t:'MACD negativo — momentum ribassista', s:'sell'}); }
+  if(e9>e21 && e21>e50)      { sc+=2; fac.push({t:'EMA 9>21>50 — allineamento rialzista perfetto', s:'buy'}); }
+  else if(e9<e21 && e21<e50) { sc-=2; fac.push({t:'EMA 9<21<50 — allineamento ribassista confermato', s:'sell'}); }
+  else                       { fac.push({t:'EMA miste — tendenza non definita', s:'neu'}); }
+  if(price < bb.lower)       { sc+=2; fac.push({t:'Prezzo sotto Bollinger inf. — rimbalzo statisticamente probabile', s:'buy'}); }
+  else if(price > bb.upper)  { sc-=2; fac.push({t:'Prezzo sopra Bollinger sup. — possibile pullback', s:'sell'}); }
+  else                       { fac.push({t:'Prezzo dentro bande Bollinger — range normale', s:'neu'}); }
+  const str = Math.min(Math.abs(sc)/8,1);
+  if(sc >= 2.5)  return {sig:'COMPRA', cls:'buy', str, fac, sc};
+  if(sc <= -2.5) return {sig:'VENDI', cls:'sell', str, fac, sc};
+  return {sig:'ATTENDI', cls:'hold', str:0.35, fac, sc};
+}
+function getDCA(sig, rsi, capital, riskPct) {
+  const maxOp = capital*(riskPct/100);
+  let mult=0.2, nOps=0;
+  if(sig.sig==='COMPRA') {
+    if(rsi<30)      { mult=1; nOps=5; }
+    else if(rsi<40) { mult=0.7; nOps=4; }
+    else            { mult=0.4; nOps=3; }
+  } else if(sig.sig==='ATTENDI') { mult=0.2; nOps=1; }
+  else { mult=0; nOps=0; }
+  const opAmt = maxOp*mult;
+  return {opAmt, nOps, totalDeploy:opAmt*nOps, maxOp, pct:mult*100};
+}
+
+// ===================== RENDER =====================
+function fmtEur(n) { return '€'+n.toFixed(2); }
+function fmtNum(n) { return n>=1 ? n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) : n.toFixed(6); }
+
+function renderCoinBar() {
+  const el = document.getElementById('coin-bar');
+  el.innerHTML = COINS.map(c => {
+    const p = ST.prices[c.id];
+    const chg = p ? p.usd_24h_change : null;
+    const chgTxt = chg!=null ? (chg>=0?'+':'')+chg.toFixed(2)+'%' : '';
+    const chgCol = chg>0?'var(--green)':chg<0?'var(--red)':'var(--text3)';
+    const priceTxt = p ? '€'+(p.eur>=1?p.eur.toLocaleString('it-IT',{maximumFractionDigits:0}):p.eur.toFixed(4)) : '—';
+    return `<div class="coin-btn${c.id===ST.selected?' active':''}" onclick="loadCoin('${c.id}')">
+      <div class="coin-sym">${c.sym}</div>
+      <div class="coin-price">${priceTxt}</div>
+      <div class="coin-chg" style="color:${chgCol}">${chgTxt}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderSignal(id, sig, rsi) {
+  const coin = COINS.find(c=>c.id===id);
+  const barCol = sig.cls==='buy'?'var(--green)':sig.cls==='sell'?'var(--red)':'var(--yellow)';
+  const fHtml = sig.fac.map(f=>`
+    <div class="factor">
+      <div class="dot" style="background:${f.s==='buy'?'var(--green)':f.s==='sell'?'var(--red)':'var(--text3)'}"></div>
+      <span>${f.t}</span>
+    </div>`).join('');
+  document.getElementById('signal-panel').innerHTML = `
+    <p class="card-title">${coin.name} — Segnale</p>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <span class="signal-badge sig-${sig.cls}">${sig.sig}</span>
+      <div style="flex:1">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Forza segnale</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${sig.str*100}%;background:${barCol}"></div></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text2)">${Math.round(sig.str*100)}%</span>
+    </div>
+    <p class="card-title" style="margin-bottom:6px">Fattori analizzati</p>
+    ${fHtml}`;
+}
+
+function renderIndicators(id, rsi, e9, e21, e50, macd, bb, price) {
+  const rsiPos = Math.min(Math.max(rsi,0),100);
+  const rsiCol = rsi<40?'var(--green)':rsi>60?'var(--red)':'var(--yellow)';
+  const trendOk = e9>e21&&e21>e50, trendBad = e9<e21&&e21<e50;
+  const trendTxt = trendOk?'Rialzista':trendBad?'Ribassista':'Laterale';
+  const trendCol = trendOk?'var(--green)':trendBad?'var(--red)':'var(--yellow)';
+  const bbTxt = price<bb.lower?'Sotto banda inf.':price>bb.upper?'Sopra banda sup.':'Dentro le bande';
+  const bbCol = price<bb.lower?'var(--green)':price>bb.upper?'var(--red)':'var(--text2)';
+  document.getElementById('ind-panel').innerHTML = `
+    <p class="card-title">Indicatori tecnici</p>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:4px">RSI (14 periodi) — <span style="color:${rsiCol};font-weight:700">${rsi.toFixed(1)}</span></p>
+    <div class="rsi-bar"><div class="rsi-pin" style="left:${rsiPos}%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:10px"><span>Ipervenduto &lt;30</span><span>30–70 Neutro</span><span>&gt;70 Ipercomprato</span></div>
+    <div class="ind-row"><span class="ind-key">Trend EMA</span><span style="font-weight:600;color:${trendCol};font-size:12px">${trendTxt}</span></div>
+    <div class="ind-row"><span class="ind-key">EMA 9 / 21 / 50</span><span style="font-family:var(--mono);font-size:11px;color:var(--text2)">€${e9.toFixed(0)} / €${e21.toFixed(0)} / €${e50.toFixed(0)}</span></div>
+    <div class="ind-row"><span class="ind-key">MACD</span><span style="font-weight:600;font-size:12px;color:${macd>0?'var(--green)':'var(--red)'}">${macd>0?'+':''}${macd.toFixed(2)}</span></div>
+    <div class="ind-row"><span class="ind-key">Bollinger</span><span style="font-size:11px;color:${bbCol}">${bbTxt}</span></div>
+    <div class="ind-row"><span class="ind-key">BB Upper / Lower</span><span style="font-family:var(--mono);font-size:11px;color:var(--text2)">€${bb.upper.toFixed(0)} / €${bb.lower.toFixed(0)}</span></div>`;
+}
+
+function renderChart(id, hist) {
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  if(ST.chart) { ST.chart.destroy(); }
+  const prices = hist.prices;
+  const mn = Math.min(...prices), mx = Math.max(...prices);
+  const up = prices[prices.length-1] >= prices[0];
+  ST.chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: hist.labels,
+      datasets: [{
+        data: prices,
+        borderColor: up ? '#00d68f' : '#ff4d4d',
+        borderWidth: 1.5, fill: false, pointRadius: 0, tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit:6, color:'#555a6a', font:{size:10}}, grid:{display:false} },
+        y: {
+          ticks: { color:'#555a6a', font:{size:10}, callback: v=>'€'+Math.round(v).toLocaleString('it-IT') },
+          grid: { color:'rgba(255,255,255,0.04)' },
+          min: mn*0.98, max: mx*1.02
+        }
+      }
+    }
+  });
+}
+
+function updateDCA() {
+  const capital = parseFloat(document.getElementById('capital').value)||1000;
+  const riskPct = parseFloat(document.getElementById('risk-pct').value)||3;
+  const ind = ST.indicators[ST.selected];
+  if(!ind) return;
+  const coin = COINS.find(c=>c.id===ST.selected);
+  const dca = getDCA(ind.sig, ind.rsi, capital, riskPct);
+  const maxRow = `<div class="dca-row"><span style="color:var(--text3)">Budget max (${riskPct}% capitale)</span><span style="font-family:var(--mono);font-weight:600">${fmtEur(dca.maxOp)}</span></div>`;
+  if(dca.nOps===0) {
+    document.getElementById('dca-out').innerHTML = maxRow +
+      `<div class="dca-row"><span style="color:var(--text3)">Consiglio</span><span style="color:var(--red);font-weight:600">Non operare ora</span></div>
+      <p class="hint" style="margin-top:6px">Il segnale attuale indica condizioni sfavorevoli. Mantieni liquidità e aspetta un RSI più basso o un cambio di trend.</p>`;
+    document.getElementById('log-btn').style.display = 'none';
+    return;
+  }
+  const opRows = Array.from({length:dca.nOps},(_,i)=>
+    `<div class="dca-row"><span style="color:var(--text3)">Micro-acquisto #${i+1}</span><span style="font-family:var(--mono);font-weight:600;color:var(--green)">${fmtEur(dca.opAmt)}</span></div>`
+  ).join('');
+  document.getElementById('dca-out').innerHTML = maxRow +
+    `<div class="dca-row"><span style="color:var(--text3)">Importo per operazione</span><span style="font-family:var(--mono);font-weight:600">${fmtEur(dca.opAmt)}</span></div>
+    <div class="dca-row"><span style="color:var(--text3)">N. micro-operazioni</span><span style="font-family:var(--mono);font-weight:600">${dca.nOps} acquisti</span></div>
+    <div class="dca-row"><span style="color:var(--text3)">Totale da impiegare</span><span style="font-family:var(--mono);font-weight:600;color:var(--green)">${fmtEur(dca.totalDeploy)}</span></div>
+    <div class="dca-row"><span style="color:var(--text3)">Capitale protetto</span><span style="font-family:var(--mono);font-weight:600">${fmtEur(capital-dca.totalDeploy)} (${(100-dca.totalDeploy/capital*100).toFixed(0)}%)</span></div>
+    <div class="sep"></div>
+    <p class="card-title" style="margin-bottom:6px">Piano micro-operazioni</p>
+    ${opRows}
+    <p class="hint" style="margin-top:6px">Esegui ogni acquisto a distanza di 2–3 giorni. Non fare tutto insieme: il DCA abbassa il prezzo medio di carico automaticamente.</p>`;
+  document.getElementById('log-btn').style.display = 'block';
+}
+
+// ===================== AI ANALYSIS =====================
+async function runAI() {
+  const apiKey = getApiKey();
+  if(!apiKey) {
+    alert('Inserisci la tua API key Anthropic nelle Impostazioni per usare questa funzione.');
+    switchTab('impostazioni');
+    return;
+  }
+  const ind = ST.indicators[ST.selected];
+  if(!ind) { alert('Carica prima i dati.'); return; }
+  const btn = document.getElementById('ai-btn');
+  const out = document.getElementById('ai-out');
+  const coin = COINS.find(c=>c.id===ST.selected);
+  const capital = parseFloat(document.getElementById('capital').value)||1000;
+  const riskPct = parseFloat(document.getElementById('risk-pct').value)||3;
+  btn.disabled = true; btn.textContent = 'Analisi in corso...';
+  out.style.display = 'block';
+  out.className = 'ai-out';
+  out.textContent = 'Claude sta analizzando i dati...';
+  const p = ST.prices[ST.selected];
+  const prompt = `Sei un analista di criptovalute esperto e prudente. Analizza questi dati di ${coin.name} (${coin.sym}) e fornisci una raccomandazione pratica in italiano.
+
+DATI DI MERCATO:
+- Prezzo attuale: €${ind.price.toFixed(2)}
+- Variazione 24h: ${p?.usd_24h_change?.toFixed(2)||'N/D'}%
+
+INDICATORI TECNICI:
+- RSI (14): ${ind.rsi.toFixed(1)} ${ind.rsi<30?'(IPERVENDUTO)':ind.rsi>70?'(IPERCOMPRATO)':'(NEUTRO)'}
+- MACD: ${ind.macd.toFixed(2)} ${ind.macd>0?'(positivo/rialzista)':'(negativo/ribassista)'}
+- EMA 9: €${ind.e9.toFixed(2)} | EMA 21: €${ind.e21.toFixed(2)} | EMA 50: €${ind.e50.toFixed(2)}
+- Bollinger Upper: €${ind.bb.upper.toFixed(2)} | Middle: €${ind.bb.middle.toFixed(2)} | Lower: €${ind.bb.lower.toFixed(2)}
+- Segnale aggregato: ${ind.sig.sig} (forza: ${Math.round(ind.sig.str*100)}%)
+
+PROFILO INVESTITORE:
+- Capitale totale: €${capital}
+- Rischio max per operazione: ${riskPct}% (€${(capital*riskPct/100).toFixed(2)})
+- Strategia: DCA conservativa, micro-operazioni, NO scommesse
+
+Fornisci un'analisi strutturata con:
+1. Situazione di mercato attuale (3-4 righe)
+2. Raccomandazione operativa chiara: compra/vendi/attendi con motivazione tecnica
+3. Piano DCA specifico: importo, numero operazioni, timing (es. ogni quanti giorni)
+4. Livelli chiave: supporto principale, resistenza principale, stop loss suggerito
+5. Rischi principali da monitorare nei prossimi 7-14 giorni
+
+Stile: diretto, professionale, concreto. Ricorda sempre che si tratta di analisi tecnica, non garanzia di profitto.`;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({model:'claude-opus-4-5', max_tokens:1200, messages:[{role:'user',content:prompt}]})
+    });
+    const d = await r.json();
+    if(d.error) { out.textContent = 'Errore API: '+d.error.message; }
+    else {
+      const txt = d.content?.map(b=>b.type==='text'?b.text:'').join('') || 'Risposta vuota.';
+      out.textContent = txt;
+    }
+  } catch(e) {
+    out.textContent = 'Errore di connessione. Verifica la API key e la connessione internet.';
+  }
+  btn.disabled = false; btn.textContent = '↻ Nuova analisi';
+}
+
+// ===================== MODAL OPERAZIONE =====================
+function openLogModal() {
+  const coin = COINS.find(c=>c.id===ST.selected);
+  document.getElementById('m-coin').value = coin.sym;
+  const ind = ST.indicators[ST.selected];
+  if(ind?.price) document.getElementById('m-price').value = ind.price.toFixed(2);
+  document.getElementById('m-eur').value = '';
+  document.getElementById('m-qty').value = '';
+  document.getElementById('m-notes').value = '';
+  document.getElementById('m-qty-calc').textContent = '';
+  document.getElementById('log-modal').classList.add('open');
+}
+function closeLogModal() {
+  document.getElementById('log-modal').classList.remove('open');
+}
+function calcModalQty() {
+  const eur = parseFloat(document.getElementById('m-eur').value);
+  const price = parseFloat(document.getElementById('m-price').value);
+  if(eur && price && price>0) {
+    const qty = eur/price;
+    document.getElementById('m-qty').value = qty.toFixed(8);
+    document.getElementById('m-qty-calc').textContent = '≈ '+qty.toFixed(8)+' '+document.getElementById('m-coin').value;
+  }
+}
+function saveOperation() {
+  const type = document.getElementById('m-type').value;
+  const coin = document.getElementById('m-coin').value;
+  const date = document.getElementById('m-date').value;
+  const eur = parseFloat(document.getElementById('m-eur').value);
+  const price = parseFloat(document.getElementById('m-price').value);
+  const qty = parseFloat(document.getElementById('m-qty').value);
+  const notes = document.getElementById('m-notes').value.trim();
+  if(!date || !eur || !price || !qty) { alert('Compila tutti i campi obbligatori (importo, prezzo, quantità).'); return; }
+  const ops = getOps();
+  ops.push({id:Date.now(), type, coin, date, eur, price, qty, notes});
+  saveOps(ops);
+  closeLogModal();
+  renderRegister();
+  renderPortfolio();
+  // feedback
+  const btn = document.getElementById('log-btn');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Salvato!';
+  btn.style.color = 'var(--green)';
+  setTimeout(()=>{ btn.textContent=orig; btn.style.color=''; }, 2000);
+}
+
+// ===================== REGISTER =====================
+function renderRegister() {
+  const ops = getOps();
+  const filterCoin = document.getElementById('filter-coin').value;
+  const filterType = document.getElementById('filter-type').value;
+  const wrap = document.getElementById('register-table-wrap');
+  let filtered = ops.filter(op =>
+    (filterCoin==='all'||op.coin===filterCoin) &&
+    (filterType==='all'||op.type===filterType)
+  ).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(!filtered.length) {
+    wrap.innerHTML = '<div class="empty-state"><span>📋</span>Nessuna operazione trovata.</div>';
+    return;
+  }
+  wrap.innerHTML = `<div style="overflow-x:auto">
+    <table class="ops-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Tipo</th>
+          <th>Coin</th>
+          <th>Importo €</th>
+          <th>Prezzo €</th>
+          <th>Quantità</th>
+          <th>Note</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered.map(op=>`
+          <tr>
+            <td class="mono">${op.date}</td>
+            <td><span class="badge badge-${op.type}">${op.type.toUpperCase()}</span></td>
+            <td style="font-weight:600;color:var(--text)">${op.coin}</td>
+            <td class="mono">€${op.eur.toFixed(2)}</td>
+            <td class="mono">€${fmtNum(op.price)}</td>
+            <td class="mono">${op.qty.toFixed(8)}</td>
+            <td style="color:var(--text3);font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${op.notes}">${op.notes||'—'}</td>
+            <td><button onclick="deleteOp(${op.id})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 4px" title="Elimina">✕</button></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function deleteOp(id) {
+  if(!confirm('Eliminare questa operazione?')) return;
+  saveOps(getOps().filter(op=>op.id!==id));
+  renderRegister();
+  renderPortfolio();
+}
+function confirmClearAll() {
+  if(!confirm('Cancellare TUTTE le operazioni? Questa azione non può essere annullata.\n\nSuggerisco prima di esportare i dati come backup.')) return;
+  saveOps([]);
+  renderRegister();
+  renderPortfolio();
+}
+
+// ===================== PORTFOLIO =====================
+function renderPortfolio() {
+  const ops = getOps();
+  if(!ops.length) {
+    document.getElementById('portfolio-coins').innerHTML = '<div class="card"><div class="empty-state"><span>💼</span>Nessuna operazione registrata.<br>Aggiungi operazioni nel Registro per vedere il tuo portafoglio.</div></div>';
+    document.getElementById('ps-invested').textContent = '€0';
+    document.getElementById('ps-value').textContent = '€0';
+    document.getElementById('ps-pnl').textContent = '€0';
+    document.getElementById('ps-pnl-pct').textContent = '0%';
+    return;
+  }
+  // Group by coin
+  const byCoins = {};
+  ops.forEach(op => {
+    if(!byCoins[op.coin]) byCoins[op.coin] = {buys:[], sells:[]};
+    if(op.type==='buy') byCoins[op.coin].buys.push(op);
+    else byCoins[op.coin].sells.push(op);
+  });
+  let totalInvested=0, totalValue=0;
+  const coinsHtml = Object.entries(byCoins).map(([sym, data]) => {
+    const coinId = COINS.find(c=>c.sym===sym)?.id;
+    const currentPrice = coinId && ST.prices[coinId]?.eur ? ST.prices[coinId].eur : null;
+    // Calcola quantità netta e costo medio
+    const totalBuyEur = data.buys.reduce((a,b)=>a+b.eur,0);
+    const totalBuyQty = data.buys.reduce((a,b)=>a+b.qty,0);
+    const totalSellQty = data.sells.reduce((a,b)=>a+b.qty,0);
+    const totalSellEur = data.sells.reduce((a,b)=>a+b.eur,0);
+    const netQty = totalBuyQty - totalSellQty;
+    const avgCost = totalBuyQty>0 ? totalBuyEur/totalBuyQty : 0;
+    const currentVal = currentPrice ? netQty*currentPrice : null;
+    const investedNet = netQty * avgCost;
+    const pnl = currentVal!=null ? currentVal - investedNet : null;
+    const pnlPct = investedNet>0 && pnl!=null ? (pnl/investedNet)*100 : null;
+    totalInvested += investedNet;
+    if(currentVal!=null) totalValue += currentVal;
+    const pnlCol = pnl>0?'var(--green)':pnl<0?'var(--red)':'var(--text2)';
+    const pnlSign = pnl>0?'+':'';
+    return `<div class="coin-summary">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px;font-weight:700;color:var(--text)">${sym}</span>
+          <span style="font-size:12px;color:var(--text3)">${data.buys.length} acquisti, ${data.sells.length} vendite</span>
+        </div>
+        ${pnl!=null?`<span style="font-size:13px;font-weight:700;color:${pnlCol}">${pnlSign}€${Math.abs(pnl).toFixed(2)} (${pnlSign}${pnlPct?.toFixed(1)}%)</span>`:'<span style="font-size:12px;color:var(--text3)">Prezzo N/D</span>'}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:12px">
+        <div><div style="color:var(--text3);font-size:10px;margin-bottom:2px">Quantità netta</div><div style="font-family:var(--mono);color:var(--text)">${netQty.toFixed(6)}</div></div>
+        <div><div style="color:var(--text3);font-size:10px;margin-bottom:2px">Prezzo medio carico</div><div style="font-family:var(--mono);color:var(--text)">€${fmtNum(avgCost)}</div></div>
+        <div><div style="color:var(--text3);font-size:10px;margin-bottom:2px">Prezzo attuale</div><div style="font-family:var(--mono);color:var(--text)">${currentPrice?'€'+fmtNum(currentPrice):'N/D'}</div></div>
+        <div><div style="color:var(--text3);font-size:10px;margin-bottom:2px">Valore attuale</div><div style="font-family:var(--mono);color:${pnlCol}">${currentVal!=null?'€'+currentVal.toFixed(2):'N/D'}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  const totalPnl = totalValue - totalInvested;
+  const totalPnlPct = totalInvested>0 ? (totalPnl/totalInvested)*100 : 0;
+  const pnlCol = totalPnl>0?'var(--green)':totalPnl<0?'var(--red)':'var(--text)';
+  document.getElementById('ps-invested').textContent = '€'+totalInvested.toFixed(2);
+  document.getElementById('ps-value').textContent = '€'+totalValue.toFixed(2);
+  document.getElementById('ps-pnl').textContent = (totalPnl>=0?'+':'')+totalPnl.toFixed(2)+'€';
+  document.getElementById('ps-pnl').style.color = pnlCol;
+  document.getElementById('ps-pnl-pct').textContent = (totalPnlPct>=0?'+':'')+totalPnlPct.toFixed(2)+'%';
+  document.getElementById('ps-pnl-pct').style.color = pnlCol;
+  document.getElementById('portfolio-coins').innerHTML = `<div class="card"><p class="card-title">Dettaglio per coin</p>${coinsHtml}</div>`;
+}
+
+// ===================== EXPORT / IMPORT =====================
+function exportData() {
+  const data = { ops: getOps(), exported: new Date().toISOString(), version:'2.0' };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'crypto_advisor_backup_'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();
+}
+function importData(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      const ops = data.ops || data;
+      if(!Array.isArray(ops)) throw new Error('Formato non valido');
+      if(!confirm(`Importare ${ops.length} operazioni? Le operazioni esistenti verranno mantenute.`)) return;
+      const existing = getOps();
+      const merged = [...existing, ...ops.filter(op=>!existing.find(e=>e.id===op.id))];
+      saveOps(merged);
+      renderRegister();
+      renderPortfolio();
+      alert(`✓ Importate ${ops.length} operazioni con successo.`);
+    } catch(err) {
+      alert('Errore nel file: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ===================== NOTIFICHE BROWSER =====================
+let NOTIF = {
+  enabled: false,
+  intervalId: null,
+  lastSignals: {},       // { coinId: 'COMPRA'|'VENDI'|'ATTENDI' }
+  lastRsiAlerts: {},     // { coinId: 'low'|'high'|null }
+  CHECK_INTERVAL: 15 * 60 * 1000  // 15 minuti
+};
+
+function initNotifications() {
+  NOTIF.enabled = localStorage.getItem('cap_notif') === '1';
+  updateNotifUI();
+  if(NOTIF.enabled) startNotifLoop();
+}
+
+function updateNotifUI() {
+  const btn1 = document.getElementById('notif-btn');
+  const btn2 = document.getElementById('notif-toggle-btn');
+  const box  = document.getElementById('notif-status-box');
+  const perm = Notification.permission;
+
+  if(!('Notification' in window)) {
+    if(btn1) btn1.textContent = '🔕 Non supportato';
+    if(btn2) { btn2.textContent = 'Non supportato'; btn2.disabled = true; }
+    return;
+  }
+
+  if(NOTIF.enabled && perm === 'granted') {
+    if(btn1) { btn1.textContent = '🔔 ON'; btn1.style.color='var(--green)'; btn1.style.borderColor='rgba(0,214,143,.4)'; }
+    if(btn2) { btn2.textContent = '✓ Attive — Disattiva'; btn2.style.color='var(--green)'; }
+    if(box)  { box.style.display='block'; box.innerHTML='<span style="color:var(--green)">✓ Notifiche attive.</span> Controllo ogni 15 minuti. Tieni il browser aperto.'; }
+  } else {
+    if(btn1) { btn1.textContent = '🔔 Notifiche'; btn1.style.color=''; btn1.style.borderColor=''; }
+    if(btn2) { btn2.textContent = perm==='denied'?'🚫 Bloccate dal browser':'Attiva notifiche'; btn2.style.color=''; }
+    if(box)  { 
+      box.style.display = perm==='denied' ? 'block' : 'none';
+      if(perm==='denied') box.innerHTML = '🚫 <strong>Notifiche bloccate.</strong> Vai nelle impostazioni del browser → Sito → Notifiche → Consenti, poi ricarica la pagina.';
+    }
+  }
+  if(btn2) btn2.disabled = perm==='denied';
+}
+
+async function toggleNotifications() {
+  if(!('Notification' in window)) { alert('Il tuo browser non supporta le notifiche.'); return; }
+
+  if(NOTIF.enabled) {
+    // Disattiva
+    NOTIF.enabled = false;
+    localStorage.setItem('cap_notif','0');
+    if(NOTIF.intervalId) { clearInterval(NOTIF.intervalId); NOTIF.intervalId=null; }
+    updateNotifUI();
+    return;
+  }
+
+  // Attiva — chiedi permesso se non ancora dato
+  if(Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted') { updateNotifUI(); alert('Permesso notifiche negato. Puoi cambiarlo nelle impostazioni del browser.'); return; }
+  }
+  if(Notification.permission !== 'granted') { updateNotifUI(); return; }
+
+  NOTIF.enabled = true;
+  localStorage.setItem('cap_notif','1');
+  updateNotifUI();
+  startNotifLoop();
+
+  // Notifica di benvenuto
+  sendNotification('🔔 Crypto Advisor Pro', 'Notifiche attivate! Ti avviserò ogni volta che c\'è un segnale importante.', '');
+}
+
+function startNotifLoop() {
+  if(NOTIF.intervalId) clearInterval(NOTIF.intervalId);
+  // Prima esecuzione dopo 1 minuto, poi ogni 15
+  setTimeout(() => {
+    checkAllSignals();
+    NOTIF.intervalId = setInterval(checkAllSignals, NOTIF.CHECK_INTERVAL);
+  }, 60 * 1000);
+}
+
+async function checkAllSignals() {
+  if(!NOTIF.enabled || Notification.permission !== 'granted') return;
+  try {
+    const ids = COINS.map(c=>c.id).join(',');
+    const pr = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=eur&include_24hr_change=true`).then(r=>r.json());
+    // Aggiorna prezzi in background
+    Object.assign(ST.prices, pr);
+
+    for(const coin of COINS) {
+      try {
+        // Prendi storico (usa cache se disponibile)
+        let hist = ST.histories[coin.id];
+        if(!hist) {
+          const h = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}/market_chart?vs_currency=eur&days=30&interval=daily`).then(r=>r.json());
+          hist = { prices: h.prices.map(p=>p[1]), labels: h.prices.map(p=>new Date(p[0]).toLocaleDateString('it-IT',{month:'short',day:'numeric'})) };
+          ST.histories[coin.id] = hist;
+        }
+        const cl = hist.prices;
+        const price = pr[coin.id]?.eur || cl[cl.length-1];
+        const rsi   = calcRSI(cl);
+        const e9=calcEMA(cl,9), e21=calcEMA(cl,21), e50=calcEMA(cl,50);
+        const macd  = calcEMA(cl,12)-calcEMA(cl,26);
+        const bb    = calcBB(cl);
+        const sig   = calcSignal(rsi, macd, price, bb, e9, e21, e50);
+
+        const prevSig  = NOTIF.lastSignals[coin.id];
+        const prevRsi  = NOTIF.lastRsiAlerts[coin.id];
+
+        // --- Segnale cambiato ---
+        if(prevSig !== undefined && prevSig !== sig.sig) {
+          if(sig.sig === 'COMPRA') {
+            sendNotification(
+              `🟢 COMPRA — ${coin.sym}`,
+              `Segnale di acquisto su ${coin.name}! Prezzo: €${price.toFixed(2)} · RSI: ${rsi.toFixed(1)}`,
+              coin.id
+            );
+          } else if(sig.sig === 'VENDI') {
+            sendNotification(
+              `🔴 VENDI — ${coin.sym}`,
+              `Segnale di vendita su ${coin.name}. Prezzo: €${price.toFixed(2)} · RSI: ${rsi.toFixed(1)}`,
+              coin.id
+            );
+          } else if(sig.sig === 'ATTENDI' && prevSig === 'COMPRA') {
+            sendNotification(
+              `⏸ Segnale indebolito — ${coin.sym}`,
+              `${coin.name} non mostra più segnale di acquisto. Valuta se aspettare.`,
+              coin.id
+            );
+          }
+        }
+
+        // --- Alert RSI ---
+        const rsiZone = rsi < 30 ? 'low' : rsi > 70 ? 'high' : null;
+        if(rsiZone !== prevRsi) {
+          if(rsiZone === 'low') {
+            sendNotification(
+              `📉 RSI Ipervenduto — ${coin.sym}`,
+              `${coin.name} RSI a ${rsi.toFixed(1)}. Zona di potenziale accumulo DCA!`,
+              coin.id
+            );
+          } else if(rsiZone === 'high') {
+            sendNotification(
+              `📈 RSI Ipercomprato — ${coin.sym}`,
+              `${coin.name} RSI a ${rsi.toFixed(1)}. Attenzione: possibile correzione.`,
+              coin.id
+            );
+          }
+        }
+
+        NOTIF.lastSignals[coin.id]   = sig.sig;
+        NOTIF.lastRsiAlerts[coin.id] = rsiZone;
+
+      } catch(e) { /* singola coin fallita, continua */ }
+    }
+
+    // Aggiorna orario ultimo check
+    const el = document.getElementById('last-update');
+    if(el) el.textContent = 'Check ' + new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+
+    // Aggiorna coin bar se sulla dashboard
+    renderCoinBar();
+
+  } catch(e) { console.warn('Errore check notifiche:', e); }
+}
+
+function sendNotification(title, body, coinId) {
+  if(Notification.permission !== 'granted') return;
+  const n = new Notification(title, {
+    body,
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%237c6af7"/><text y="44" x="32" text-anchor="middle" font-size="36" fill="white">⬡</text></svg>',
+    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%237c6af7"/></svg>',
+    tag: 'crypto-advisor-'+coinId,
+    renotify: true
+  });
+  n.onclick = function() { window.focus(); n.close(); if(coinId) loadCoin(coinId); };
+}
+
+// Close modal on overlay click
+document.getElementById('log-modal').addEventListener('click', function(e) {
+  if(e.target===this) closeLogModal();
+});
+</script>
+</body>
+</html>
